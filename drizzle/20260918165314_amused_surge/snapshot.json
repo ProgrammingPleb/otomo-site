@@ -1,0 +1,335 @@
+{
+  "version": "8",
+  "dialect": "postgres",
+  "id": "67504d1a-5739-410e-bb29-16c5331673be",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "ddl": [
+    {
+      "isRlsEnabled": false,
+      "name": "channels",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "last_checked",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "streams",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "channels_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "2147483647",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "varchar(32)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "romaji",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "group",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "is_inactive",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "is_group_channel",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "organization",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "last_checked_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "2147483647",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "last_checked"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "last_checked"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "time",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "last_checked"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "streams_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "2147483647",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "streams"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "streams"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "streams"
+    },
+    {
+      "type": "varchar(64)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "video_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "streams"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "time",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "streams"
+    },
+    {
+      "type": "boolean",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "ended",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "streams"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "channel_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "channels",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "streams_channel_id_channels_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "streams"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "channels_pkey",
+      "schema": "public",
+      "table": "channels",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "last_checked_pkey",
+      "schema": "public",
+      "table": "last_checked",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "streams_pkey",
+      "schema": "public",
+      "table": "streams",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "channel_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "channels_channel_id_key",
+      "schema": "public",
+      "table": "channels",
+      "entityType": "uniques"
+    }
+  ],
+  "renames": []
+}
