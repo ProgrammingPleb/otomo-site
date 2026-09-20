@@ -5,7 +5,7 @@ async function updateStreams(holodexKey: string) {
     const videos = await getLatestVideos(holodexKey);
     if (videos) {
         await refreshStreams(videos);
-        console.log("Refreshed streams from holodex!");
+        console.log(`[${new Date().toISOString()}] Refreshed streams from holodex!`);
     }
 
     setTimeout(() => {
