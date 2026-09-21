@@ -8,6 +8,13 @@
       "when": 1789810139778,
       "tag": "0000_furry_edwin_jarvis",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789906831046,
+      "tag": "0001_broken_eternals",
+      "breakpoints": true
     }
   ]
 }

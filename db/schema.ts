@@ -17,7 +17,8 @@ export const streamsTable = pgTable("streams", {
     channel_id: integer().references(() => channelsTable.id),
     title: varchar({ length: 255 }).notNull(),
     video_id: varchar({ length: 64 }).notNull().unique(),
-    time: bigint({ mode: "number" }).notNull(),
+    start_scheduled: bigint({ mode: "number" }),
+    start_actual: bigint({ mode: "number" }),
     ended: boolean(),
 });
 

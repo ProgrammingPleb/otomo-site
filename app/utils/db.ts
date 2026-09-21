@@ -1,6 +1,6 @@
 import { channelsTable, lastCheckedTable, streamsTable } from '@/db/schema';
 import 'dotenv/config';
-import { eq, gte } from "drizzle-orm";
+import { and, eq, gte, isNull, or } from "drizzle-orm";
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { HolodexVideo } from '../model/holodex';
 
@@ -59,7 +59,15 @@ export async function refreshStreams(
         checkDate.setDate(checkDate.getDate() - 1);
         const dayStreamsRaw = await db.select({
             video_id: streamsTable.video_id
-        }).from(streamsTable).where(gte(streamsTable.time, checkDate.getTime()));
+        }).from(streamsTable).where(
+            and(
+                eq(streamsTable.ended, false),
+                or(
+                    isNull(streamsTable.start_scheduled),
+                    gte(streamsTable.start_scheduled, checkDate.getTime())
+                )
+            )
+        );
         const dayStreams = dayStreamsRaw.map((video) => video.video_id);
         const currentLivestreams = videos.map((video) => video.id);
         for (const video of dayStreams) {
@@ -82,18 +90,20 @@ export async function refreshStreams(
                 if (channelId === null) {
                     continue;       // TODO: Check if we can fallback to a sane backend
                 }
-                const epochTime = (video.start_actual != null ?
-                    new Date(video.start_actual).getTime() :
-                    new Date(video.start_scheduled ?? 0).getTime());
                 await db.insert(streamsTable).values({
                     channel_id: channelId,
                     title: video.title,
                     video_id: video.id,
-                    time: epochTime,
+                    start_scheduled: video.start_scheduled != null ? new Date(video.start_scheduled).getTime() : null,
+                    start_actual: video.start_actual != null ? new Date(video.start_actual).getTime() : null,
                     ended: false
                 }).onConflictDoUpdate({
                     target: streamsTable.video_id,
-                    set: { title: video.title, time: epochTime }
+                    set: {
+                        title: video.title,
+                        start_scheduled: video.start_scheduled != null ? new Date(video.start_scheduled).getTime() : null,
+                        start_actual: video.start_actual != null ? new Date(video.start_actual).getTime() : null,
+                    }
                 });
             }
         }
