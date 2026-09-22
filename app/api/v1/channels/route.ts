@@ -48,7 +48,6 @@ export async function POST(request: Request) {
         }
 
         const rows = data.split("\n").map((row) => row.replace("\r", ""));
-        console.log(rows);
         if (rows[0] != "Youtube ID,Name,Romaji Name,Profile Picture,Group,Is Inactive,Is Group Channel,Organization") {
             return Response.json({
                 success: false,
@@ -85,6 +84,10 @@ export async function POST(request: Request) {
             } catch (e) {
                 erroredChannels.push(rowData[0]);
             }
+        }
+        console.log(`[${new Date().toISOString()}] Imported ${rows.length - 1} channels! (Errored: ${erroredChannels.length})`);
+        if (erroredChannels.length > 0) {
+            console.log(`Invalid Channel IDs: ${erroredChannels.join(", ")}`);
         }
 
         return Response.json({
