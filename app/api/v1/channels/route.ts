@@ -81,7 +81,7 @@ export async function POST(request: Request) {
                         organization: rowData[7]
                     }
                 });
-            } catch (e) {
+            } catch {
                 erroredChannels.push(rowData[0]);
             }
         }
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
                 channels: erroredChannels
             }
         });
-    } catch (e) {
+    } catch {
         return Response.json({
             success: false,
             message: "An unexpected error has occurred."

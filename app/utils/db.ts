@@ -1,12 +1,10 @@
-import { channelsTable, lastCheckedTable, streamsTable } from '@/db/schema';
-import 'dotenv/config';
-import { and, eq, gte, isNull, or } from "drizzle-orm";
+import { channelsTable, lastCheckedTable, queuedVideosTable, videosTable, webSubTable } from '@/db/schema';
+import { postgresDB, postgresPassword, postgresUser } from '@/drizzle.config';
+import { eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { HolodexVideo } from '../model/holodex';
-
-export const postgresUser = process.env.POSTGRES_USER ?? "otomo";
-export const postgresPassword = process.env.POSTGRES_PASSWORD ?? "ChangeMe123!";
-export const postgresDB = process.env.POSTGRES_DB ?? "otomo";
+import { OtomoVideoInsert } from '../model/otomo';
+import { QueueEntry, YOUTUBE_VIDEOS_BUFFER_MINUTES } from './fetch';
 
 export const db = drizzle(`postgres://${postgresUser}:${postgresPassword}@localhost:5432/${postgresDB}`);
 
@@ -14,10 +12,6 @@ export async function isRefreshPossible(name: string) {
     const currentTime = new Date();
 
     try {
-        if (currentTime.getMinutes() < 15) {
-            return true;
-        }
-
         const timeCheck = await db.select({ time: lastCheckedTable.time })
             .from(lastCheckedTable).where(eq(lastCheckedTable.name, name));
         if (timeCheck.length > 0 && timeCheck[0].time < currentTime.getTime()) {    // If exists, then check if the time has passed.
@@ -27,7 +21,7 @@ export async function isRefreshPossible(name: string) {
             return true;
         }
     } catch (e) {
-        console.error(`DB: Unable to get last checked date for "${name}"`, e);
+        console.error(`[${new Date().toISOString()}] DB: Unable to get last checked date for "${name}"`, e);
     }
 
     return false;
@@ -46,7 +40,7 @@ export async function updateLastCheckedTime(name: string, timeoutHours: number) 
             set: { time: currentTimeMillis + timeoutMillis }
         });
     } catch (e) {
-        console.error("DB: Unable to get settings!", e);
+        console.error(`[${new Date().toISOString()}] DB: Unable to get settings!`, e);
     }
 }
 
@@ -55,59 +49,148 @@ export async function refreshStreams(
 ) {
     try {
         // Check for streams not in the current list and assume they have ended
-        const checkDate = new Date();
+        const currentDate = new Date();
+        const checkDate = new Date(currentDate);
         checkDate.setDate(checkDate.getDate() - 1);
-        const dayStreamsRaw = await db.select({
-            video_id: streamsTable.video_id
-        }).from(streamsTable).where(
-            and(
-                eq(streamsTable.ended, false),
-                or(
-                    isNull(streamsTable.start_scheduled),
-                    gte(streamsTable.start_scheduled, checkDate.getTime())
-                )
+
+        const holodexStreams: OtomoVideoInsert[] = videos.filter((video) => video.type == "stream").map((video) => ({
+            channel_id: video.channel.id,
+            title: video.title,
+            video_id: video.id,
+            type: "stream",
+            start_scheduled: video.start_scheduled != null ? new Date(video.start_scheduled).getTime() : null,
+            start_actual: video.start_actual != null ? new Date(video.start_actual).getTime() : null,
+        }));
+
+        await upsertYouTubeVideos(holodexStreams, true);
+    } catch (e) {
+        console.error(`[${new Date().toISOString()}] DB: Unable to set streams!`, e);
+    }
+}
+
+export async function upsertYouTubeVideos(videos: OtomoVideoInsert[], skipEndedUpdate: boolean) {
+    const channelsData = await db.select({
+        id: channelsTable.id,
+        channelId: channelsTable.channel_id
+    }).from(channelsTable);
+    const channelsMap: Map<string, number> = new Map();
+    channelsData.forEach((value) => channelsMap.set(value.channelId, value.id));
+
+    for (const video of videos) {
+        try {
+            const channelId = channelsMap.get(video.channel_id);
+            if (!channelId) {
+                console.log(`Unable to get channel ID from DB with "${video.channel_id}" for video "${video.video_id}"!`);
+                continue;   // TODO: Check if we can fallback to a sane backend
+            }
+
+            await db.insert(videosTable).values({
+                channel_id: channelId,
+                title: video.title,
+                video_id: video.video_id,
+                type: video.type,
+                start_scheduled: video.start_scheduled,
+                start_actual: video.start_actual,
+                end_actual: video.end_actual,
+                published_at: video.published_at,
+            }).onConflictDoUpdate({
+                target: videosTable.video_id,
+                set: {
+                    title: video.title,
+                    start_scheduled: video.start_scheduled,
+                    start_actual: video.start_actual,
+                    end_actual: skipEndedUpdate ? undefined : video.end_actual,   // undefined skips this write, only null writes updates back
+                    published_at: video.published_at,
+                }
+            });
+        } catch (e) {
+            console.error(`[${new Date().toISOString()}] DB: Unable to set video data for "${video.video_id}"!`, e);
+        }
+    }
+}
+
+export async function removeYouTubeVideo(videoId: string) {
+    try {
+        await db.delete(videosTable).where(eq(videosTable.video_id, videoId));
+        await db.delete(queuedVideosTable).where(eq(queuedVideosTable.video_id, videoId));
+    } catch (e) {
+        console.error(`[${new Date().toISOString()}] DB: Unable to remove YouTube video details for "${videoId}"!`, e)
+    }
+}
+
+export async function getQueuedVideos(): Promise<QueueEntry[] | undefined> {
+    const currentTime = new Date().getTime();
+
+    try {
+        return await db.select({
+            id: queuedVideosTable.video_id,
+            isShorts: queuedVideosTable.is_shorts,
+        }).from(queuedVideosTable).where(lte(queuedVideosTable.time, currentTime));
+    } catch (e) {
+        console.error(`[${new Date().toISOString()}] DB: Unable to get queued videos!`, e);
+    }
+}
+
+export async function modifyVideoQueue(videos: QueueEntry[], type: keyof typeof YOUTUBE_VIDEOS_BUFFER_MINUTES) {
+    const minTime = new Date().getTime() + (YOUTUBE_VIDEOS_BUFFER_MINUTES[type] - 0.5) * 60 * 1000;     // Remove 30 seconds so that they are fetched on the upcoming 2 minute fetches
+
+    for (const video of videos) {
+        try {
+            await db.insert(queuedVideosTable).values({
+                video_id: video.id,
+                time: minTime,
+                is_shorts: video.isShorts,
+            }).onConflictDoUpdate({
+                target: queuedVideosTable.video_id,
+                set: {
+                    time: minTime,
+                    is_shorts: video.isShorts,
+                }
+            });
+        } catch (e) {
+            console.error(`[${new Date().toISOString()}] DB: Unable to set video queue time for "${video.id}"!`, e);
+        }
+    }
+}
+
+export async function removeVideosFromQueue(videoIds: string[]) {
+    try {
+        await db.delete(queuedVideosTable).where(inArray(queuedVideosTable.video_id, videoIds));
+    } catch (e) {
+        console.error(`[${new Date().toISOString()}] DB: Unable to remove YouTube video queue items!`, e)
+    }
+}
+
+export async function getPendingChannelResubs() {
+    const channels = await db.select({ channel_id: channelsTable.channel_id }).from(channelsTable)
+        .leftJoin(webSubTable, eq(channelsTable.id, webSubTable.channel_id))
+        .where(
+            or(
+                isNull(webSubTable.time),
+                lte(webSubTable.time, new Date().getTime())
             )
         );
-        const dayStreams = dayStreamsRaw.map((video) => video.video_id);
-        const currentLivestreams = videos.map((video) => video.id);
-        for (const video of dayStreams) {
-            if (!currentLivestreams.includes(video)) {
-                await db.update(streamsTable).set({
-                    ended: true
-                }).where(eq(streamsTable.video_id, video));
-            }
-        }
+    return channels;
+}
 
-        // Now check and update streams that are live or upcoming
-        for (const video of videos) {
-            if (video.type == "stream") {
-                const channelFetch = await db.select({
-                    id: channelsTable.id
-                })
-                    .from(channelsTable)
-                    .where(eq(channelsTable.channel_id, video.channel.id));
-                let channelId = channelFetch.length > 0 ? channelFetch[0].id : null;
-                if (channelId === null) {
-                    continue;       // TODO: Check if we can fallback to a sane backend
-                }
-                await db.insert(streamsTable).values({
-                    channel_id: channelId,
-                    title: video.title,
-                    video_id: video.id,
-                    start_scheduled: video.start_scheduled != null ? new Date(video.start_scheduled).getTime() : null,
-                    start_actual: video.start_actual != null ? new Date(video.start_actual).getTime() : null,
-                    ended: false
-                }).onConflictDoUpdate({
-                    target: streamsTable.video_id,
-                    set: {
-                        title: video.title,
-                        start_scheduled: video.start_scheduled != null ? new Date(video.start_scheduled).getTime() : null,
-                        start_actual: video.start_actual != null ? new Date(video.start_actual).getTime() : null,
-                    }
-                });
-            }
-        }
-    } catch (e) {
-        console.error("DB: Unable to set streams!", e);
+export async function setChannelSubscription(channelId: string, time: number) {
+    const channel = await db.select({ id: channelsTable.id })
+        .from(channelsTable).where(eq(channelsTable.channel_id, channelId));
+
+    if (channel.length < 1) {
+        console.error(`[${new Date().toISOString()}] DB: Unable to set channel subscription end time for "${channelId}"!`);
+        return false;
     }
+    try {
+        await db.insert(webSubTable).values({ channel_id: channel[0].id, time: time })
+            .onConflictDoUpdate({
+                target: webSubTable.channel_id,
+                set: { time: time }
+            });
+        return true;
+    } catch (e) {
+        console.error(`[${new Date().toISOString()}] DB: Unable to set channel subscription end time for "${channelId}"!`, e);
+    }
+
+    return false;
 }
