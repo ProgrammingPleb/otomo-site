@@ -1,12 +1,12 @@
 import { channelsTable, lastCheckedTable, queuedVideosTable, videosTable, webSubTable } from '@/db/schema';
-import { postgresDB, postgresPassword, postgresUser } from '@/drizzle.config';
 import { eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { HolodexVideo } from '../model/holodex';
 import { OtomoVideoInsert } from '../model/otomo';
 import { QueueEntry, YOUTUBE_VIDEOS_BUFFER_MINUTES } from './fetch';
+import { databaseUrl } from '../env';
 
-export const db = drizzle(`postgres://${postgresUser}:${postgresPassword}@localhost:5432/${postgresDB}`);
+export const db = drizzle(databaseUrl);
 
 export async function isRefreshPossible(name: string) {
     const currentTime = new Date();
