@@ -44,28 +44,40 @@ export async function updateLastCheckedTime(name: string, timeoutHours: number) 
     }
 }
 
-export async function refreshStreams(
+export async function queueUnseenHolodexVideos(
     videos: HolodexVideo[]
 ) {
     try {
-        // Check for streams not in the current list and assume they have ended
-        const currentDate = new Date();
-        const checkDate = new Date(currentDate);
-        checkDate.setDate(checkDate.getDate() - 1);
+        const unqueuedVideos: QueueEntry[] = [];
 
-        const holodexStreams: OtomoVideoInsert[] = videos.filter((video) => video.type == "stream").map((video) => ({
-            channel_id: video.channel.id,
-            title: video.title,
-            video_id: video.id,
-            type: "stream",
-            start_scheduled: video.start_scheduled != null ? new Date(video.start_scheduled).getTime() : null,
-            start_actual: video.start_actual != null ? new Date(video.start_actual).getTime() : null,
-        }));
+        const dbChannelIds = new Set(
+            (await db.select({ channelId: channelsTable.channel_id }).from(channelsTable))
+            .map((channel) => channel.channelId)
+        );
+        const dbQueuedVideoIds = new Set(
+            (await db.select({ videoId: queuedVideosTable.video_id }).from(queuedVideosTable))
+                .map((video) => video.videoId)
+        );
+        for (const video of videos) {
+            if (!dbChannelIds.has(video.channel.id)) {
+                continue;           // Skip as we don't have accurate data for this channel yet
+            }
+            if (!dbQueuedVideoIds.has(video.id)) {
+                unqueuedVideos.push({
+                    id: video.id,
+                    isShorts: false
+                });
+            }
+        }
 
-        await upsertYouTubeVideos(holodexStreams, true);
+        await modifyVideoQueue(unqueuedVideos, "new");
+        
+        return unqueuedVideos.length;
     } catch (e) {
-        console.error(`[${new Date().toISOString()}] DB: Unable to set streams!`, e);
+        console.error(`[${new Date().toISOString()}] DB: Unable to queue unseen videos from Holodex!`, e);
     }
+
+    return 0;
 }
 
 export async function upsertYouTubeVideos(videos: OtomoVideoInsert[], skipEndedUpdate: boolean) {

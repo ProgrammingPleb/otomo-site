@@ -3,8 +3,9 @@ import { youtube, youtube_v3 } from "@googleapis/youtube";
 import { OtomoVideoInsert } from "../model/otomo";
 import { getQueuedVideos, isRefreshPossible, modifyVideoQueue, removeVideosFromQueue, updateLastCheckedTime, upsertYouTubeVideos } from "./db";
 
-const STREAMS_BUFFER_NAME = "streams";
-const STREAMS_BUFFER_HOURS = 0.25;
+const HOLODEX_BUFFER_NAME = "holodex";
+const HOLODEX_BUFFER_HOURS = 0.5;
+const HOLODEX_API_KEY = process.env.HOLODEX_KEY;
 export const YOUTUBE_VIDEOS_BUFFER_MINUTES = {
     "new": 2,       // New, live and streams within 30 minutes of starting
     "upcoming": 16,     // Streams within 4 hours of starting
@@ -60,25 +61,22 @@ async function fetchData<T = unknown>(apiKey: string, endpoint: string, options?
 
 /**
  * Fetches all upcoming and current live streams. Does not contain streams that have already ended.
- * @returns All upcoming and current live streams. `undefined` if checked too recently (within 15 minutes).
+ * @returns All upcoming and current live streams. `undefined` if checked too recently (within 30 minutes) or when fetches fail.
  */
-export async function getLatestHolodexVideos(apiKey: string) {
-    if (!await isRefreshPossible(STREAMS_BUFFER_NAME)) {
+export async function getLatestHolodexVideos() {
+    if (!HOLODEX_API_KEY || !await isRefreshPossible(HOLODEX_BUFFER_NAME)) {
         return;
     }
 
-    const data = await fetchData<HolodexVideo[]>(apiKey, "/live", {
+    const data = await fetchData<HolodexVideo[]>(HOLODEX_API_KEY, "/live", {
         org: "Nijisanji",
         status: ["live", "upcoming"]
     } as HolodexLiveEndpointOptions);
-    const currentTime = new Date();
 
-    if (currentTime.getMinutes() < 15) {
-        await updateLastCheckedTime(STREAMS_BUFFER_NAME, 4 / 60);
-    } else {
-        await updateLastCheckedTime(STREAMS_BUFFER_NAME, STREAMS_BUFFER_HOURS);
+    if (data) {
+        await updateLastCheckedTime(HOLODEX_BUFFER_NAME, HOLODEX_BUFFER_HOURS);
+        return data;
     }
-    return data ?? [];
 }
 
 export async function processQueuedVideos() {
