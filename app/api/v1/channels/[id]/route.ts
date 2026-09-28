@@ -1,6 +1,6 @@
-import { db } from "@/app/utils/db";
 import { eq } from "drizzle-orm";
 import { channelsTable } from "@/db/schema";
+import { db } from "@/app/utils/db";
 
 export async function GET(
     request: Request,
