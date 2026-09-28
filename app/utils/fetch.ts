@@ -99,7 +99,7 @@ export async function processQueuedVideos() {
 
     for (const video of fetchedVideos) {
         let key: keyof typeof YOUTUBE_VIDEOS_BUFFER_MINUTES = "new";
-        if (video.type != "stream") {
+        if (video.type != "stream" || video.end_actual) {
             dequeuedVideos.push(video.video_id);
             continue;
         }
@@ -162,7 +162,7 @@ function convertToOtomoFormat(video: youtube_v3.Schema$Video, isShort: boolean):
         channel_id: snippet.channelId!,
         title: snippet.title!,
         video_id: video.id!,
-        type: classifyVideo(snippet.liveBroadcastContent!, isShort),
+        type: classifyVideo(video.liveStreamingDetails, isShort),
         start_scheduled: video.liveStreamingDetails?.scheduledStartTime ? new Date(video.liveStreamingDetails.scheduledStartTime).getTime() : undefined,
         start_actual: video.liveStreamingDetails?.actualStartTime ? new Date(video.liveStreamingDetails.actualStartTime).getTime() : undefined,
         end_actual: video.liveStreamingDetails?.actualEndTime ? new Date(video.liveStreamingDetails.actualEndTime).getTime() : undefined,
@@ -170,11 +170,11 @@ function convertToOtomoFormat(video: youtube_v3.Schema$Video, isShort: boolean):
     }
 }
 
-function classifyVideo(type: string, isShort: boolean) {
+function classifyVideo(liveStreamDetails: youtube_v3.Schema$VideoLiveStreamingDetails | undefined, isShort: boolean) {
     if (isShort) {
         return "short";
     }
-    if (type != "none") {
+    if (liveStreamDetails) {
         return "stream";
     }
     return "video";
