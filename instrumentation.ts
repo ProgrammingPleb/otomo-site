@@ -1,3 +1,4 @@
+import { postgresUser, postgresPassword, postgresHost, postgresPort, postgresDB } from "./app/env";
 import { queueUnseenHolodexVideos } from "./app/utils/db";
 import { getLatestHolodexVideos, processQueuedVideos } from "./app/utils/fetch";
 import { updateChannelSubscriptions } from "./app/utils/subscribe";
@@ -36,6 +37,11 @@ async function updateData() {
 }
 
 export function register() {
+    if (!postgresUser || !postgresPassword || !postgresHost || !postgresPort || !postgresDB) {
+        console.error("DB: Details were not set!");
+        process.exit(1);
+    }
+
     const holodexKey = process.env.HOLODEX_KEY;
     const youtubeSecret = process.env.YOUTUBE_WEBSUB_SECRET;
     const youtubeKey = process.env.YOUTUBE_API_KEY;
