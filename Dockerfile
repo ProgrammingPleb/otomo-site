@@ -94,6 +94,9 @@
   # https://nextjs.org/docs/advanced-features/output-file-tracing
   COPY --from=builder --chown=node:node /app/.next/standalone ./
   COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+  
+  # Copy Drizzle migrations into the Docker container
+  COPY --from=builder --chown=node:node /app/drizzle ./drizzle
 
   # If you want to persist the fetch cache generated during the build so that
   # cached responses are available immediately on startup, uncomment this line:
