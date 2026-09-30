@@ -17,7 +17,6 @@ services:
       retries: 5
   app:
     build: .
-    image: otomo-site-docker
     restart: unless-stopped
     depends_on:
       db:
