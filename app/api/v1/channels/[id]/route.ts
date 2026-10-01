@@ -14,6 +14,7 @@ export async function GET(
         romaji: channelsTable.romaji,
         profile_picture: channelsTable.profile_picture,
         group: channelsTable.group,
+        major_group: channelsTable.major_group,
         is_inactive: channelsTable.is_inactive,
         is_group_channel: channelsTable.is_group_channel,
         organization: channelsTable.organization,

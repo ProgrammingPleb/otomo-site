@@ -16,7 +16,7 @@ You may find the installation instructions for the application with the [README 
 Any contributions are widely appreciated! (although I won't expect any for this application)  
 
 ### Data
-We're currently aggregating the channels data in this Google Sheet [here](https://docs.google.com/spreadsheets/d/1GgH2LddekHNNuxkqqwCYjOH5PTE_zPc9IDci6ZOjuAg/edit?gid=170655564#gid=170655564)!  
+We're currently aggregating the channels data in this Google Sheet [here](https://otomo.pleb.moe/data-sheet)!  
 If you do not have expertise in programming, don't worry, you may still be able to help out here! Some of the channels may show incorrect data, and you can contribute by correcting such data through this sheet here.  
 As contributions here are reviewed manually, some of the changes might take longer than expected for them to reflect in the sheet.
 

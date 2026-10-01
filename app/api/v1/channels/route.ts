@@ -8,6 +8,7 @@ export async function GET() {
         romaji: channelsTable.romaji,
         profile_picture: channelsTable.profile_picture,
         group: channelsTable.group,
+        major_group: channelsTable.major_group,
         is_inactive: channelsTable.is_inactive,
         is_group_channel: channelsTable.is_group_channel,
         organization: channelsTable.organization,
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
         }
 
         const rows = data.split("\n").map((row) => row.replace("\r", ""));
-        if (rows[0] != "Youtube ID,Name,Romaji Name,Profile Picture,Group,Is Inactive,Is Group Channel,Organization") {
+        if (rows[0] != "Youtube ID,Name,Romaji Name,Profile Picture,Group,Major Group,Is Inactive,Is Group Channel,Organization") {
             return Response.json({
                 success: false,
                 message: "The data given was invalid!"
@@ -63,22 +64,24 @@ export async function POST(request: Request) {
                 await db.insert(channelsTable).values({
                     channel_id: rowData[0],
                     name: rowData[1],
-                    romaji: rowData[2],
+                    romaji: rowData[2] ? rowData[2] : null,
                     profile_picture: rowData[3],
                     group: rowData[4],
-                    is_inactive: rowData[5] == "1",
-                    is_group_channel: rowData[6] == "1",
-                    organization: rowData[7]
+                    major_group: rowData[5] ? rowData[5] : null,
+                    is_inactive: rowData[6] == "1",
+                    is_group_channel: rowData[7] == "1",
+                    organization: rowData[8] ? rowData[8] : null
                 }).onConflictDoUpdate({
                     target: channelsTable.channel_id,
                     set: {
                         name: rowData[1],
-                        romaji: rowData[2],
+                        romaji: rowData[2] ? rowData[2] : null,
                         profile_picture: rowData[3],
                         group: rowData[4],
-                        is_inactive: rowData[5] == "1",
-                        is_group_channel: rowData[6] == "1",
-                        organization: rowData[7]
+                        major_group: rowData[5] ? rowData[5] : null,
+                        is_inactive: rowData[6] == "1",
+                        is_group_channel: rowData[7] == "1",
+                        organization: rowData[8] ? rowData[8] : null
                     }
                 });
             } catch {

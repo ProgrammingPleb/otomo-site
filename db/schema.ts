@@ -9,6 +9,7 @@ export const channelsTable = pgTable("channels", {
     name: varchar({ length: 255 }).notNull(),
     romaji: varchar({ length: 255 }),
     group: varchar({ length: 100 }).notNull(),
+    major_group: varchar({ length: 100 }),
     profile_picture: varchar({ length: 255 }).notNull(),
     is_inactive: boolean().notNull(),
     is_group_channel: boolean().notNull(),
