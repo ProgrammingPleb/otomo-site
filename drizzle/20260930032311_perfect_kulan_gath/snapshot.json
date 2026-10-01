@@ -1,11 +1,30 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "67504d1a-5739-410e-bb29-16c5331673be",
+  "id": "d2e5032a-6ead-4033-ba80-70ecf6fa841b",
   "prevIds": [
-    "00000000-0000-0000-0000-000000000000"
+    "e7d0373f-795f-45da-b4da-cd53e681053e"
   ],
   "ddl": [
+    {
+      "values": [
+        "channel",
+        "video"
+      ],
+      "name": "etag_type",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "values": [
+        "stream",
+        "video",
+        "short"
+      ],
+      "name": "video_type",
+      "entityType": "enums",
+      "schema": "public"
+    },
     {
       "isRlsEnabled": false,
       "name": "channels",
@@ -20,7 +39,19 @@
     },
     {
       "isRlsEnabled": false,
-      "name": "streams",
+      "name": "queued",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "videos",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "websub",
       "entityType": "tables",
       "schema": "public"
     },
@@ -94,6 +125,19 @@
       "generated": null,
       "identity": null,
       "name": "group",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "channels"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "profile_picture",
       "entityType": "columns",
       "schema": "public",
       "table": "channels"
@@ -173,7 +217,7 @@
       "table": "last_checked"
     },
     {
-      "type": "integer",
+      "type": "bigint",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -194,7 +238,7 @@
       "generated": null,
       "identity": {
         "type": "always",
-        "name": "streams_id_seq",
+        "name": "queued_id_seq",
         "increment": "1",
         "startWith": "1",
         "minValue": "1",
@@ -205,33 +249,7 @@
       "name": "id",
       "entityType": "columns",
       "schema": "public",
-      "table": "streams"
-    },
-    {
-      "type": "integer",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "channel_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "streams"
-    },
-    {
-      "type": "varchar(255)",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "title",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "streams"
+      "table": "queued"
     },
     {
       "type": "varchar(64)",
@@ -244,10 +262,10 @@
       "name": "video_id",
       "entityType": "columns",
       "schema": "public",
-      "table": "streams"
+      "table": "queued"
     },
     {
-      "type": "integer",
+      "type": "bigint",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -257,20 +275,194 @@
       "name": "time",
       "entityType": "columns",
       "schema": "public",
-      "table": "streams"
+      "table": "queued"
     },
     {
       "type": "boolean",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "is_shorts",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "queued"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "videos_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "2147483647",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "title",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "varchar(64)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "video_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "video_type",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "bigint",
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "ended",
+      "name": "start_scheduled",
       "entityType": "columns",
       "schema": "public",
-      "table": "streams"
+      "table": "videos"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "start_actual",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "end_actual",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "published_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "videos"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": {
+        "type": "always",
+        "name": "websub_id_seq",
+        "increment": "1",
+        "startWith": "1",
+        "minValue": "1",
+        "maxValue": "2147483647",
+        "cache": 1,
+        "cycle": false
+      },
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "websub"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "websub"
+    },
+    {
+      "type": "bigint",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "time",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "websub"
     },
     {
       "nameExplicit": false,
@@ -283,11 +475,28 @@
         "id"
       ],
       "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "streams_channel_id_channels_id_fkey",
+      "onDelete": "CASCADE",
+      "name": "videos_channel_id_channels_id_fkey",
       "entityType": "fks",
       "schema": "public",
-      "table": "streams"
+      "table": "videos"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "channel_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "channels",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "websub_channel_id_channels_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "websub"
     },
     {
       "columns": [
@@ -314,9 +523,29 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "queued_pkey",
+      "schema": "public",
+      "table": "queued",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "streams_pkey",
       "schema": "public",
-      "table": "streams",
+      "table": "videos",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "websub_pkey",
+      "schema": "public",
+      "table": "websub",
       "entityType": "pks"
     },
     {
@@ -325,11 +554,58 @@
         "channel_id"
       ],
       "nullsNotDistinct": false,
-      "name": "channels_channel_id_key",
+      "name": "channels_channel_id_unique",
       "schema": "public",
       "table": "channels",
       "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "name"
+      ],
+      "nullsNotDistinct": false,
+      "name": "last_checked_name_unique",
+      "schema": "public",
+      "table": "last_checked",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "video_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "queued_video_id_key",
+      "schema": "public",
+      "table": "queued",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "video_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "streams_video_id_unique",
+      "schema": "public",
+      "table": "videos",
+      "entityType": "uniques"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "channel_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "websub_channel_id_key",
+      "schema": "public",
+      "table": "websub",
+      "entityType": "uniques"
     }
   ],
-  "renames": []
+  "renames": [
+    "public.streams->public.videos",
+    "public.videos.streams_channel_id_channels_id_fk->public.videos.videos_channel_id_channels_id_fkey"
+  ]
 }

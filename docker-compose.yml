@@ -1,14 +1,45 @@
 services:
   db:
     image: postgres:18
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-otomo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMe123!}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: ${POSTGRES_DB:-otomo}
     ports:
-      - ${POSTGRES_PORT:-5432}:5432
+      - 127.0.0.1:${POSTGRES_PORT:-5432}:5432     # For drizzle-kit debugging
     volumes:
       - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "${POSTGRES_USER:-otomo}", "-d", "${POSTGRES_DB:-otomo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - ${WEB_HOST_PORT:-3000}:3000
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-otomo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-otomo}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      UPLOAD_KEY: ${UPLOAD_KEY}
+      HOLODEX_KEY: ${HOLODEX_KEY}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      YOUTUBE_WEBSUB_SECRET: ${YOUTUBE_WEBSUB_SECRET}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/v1/channels').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      start_period: 30s
+      start_interval: 3s
+      interval: 45s
+      timeout: 5s
+      retries: 3
 
 volumes:
   db:
