@@ -15,8 +15,8 @@ export async function GET() {
     return Response.json(
         data.map((row) => {
             const { id: removedStreamId, channel_id: removedChannelId, ...stream } = row.videos;
-            const { id: removedChannelJoinId, channel_id: id, ...channel } = row.channels;
-            return { ...stream, channel: { id: id, ...channel } };
+            const { id: removedChannelJoinId, channel_id: id, group, ...channel } = row.channels;
+            return { ...stream, channel: { id: id, group: group ? group : null, ...channel } };
         })
     );
 }

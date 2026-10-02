@@ -1,10 +1,10 @@
 import { channelsTable, lastCheckedTable, queuedVideosTable, videosTable, webSubTable } from '@/db/schema';
-import { eq, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { HolodexVideo } from '../model/holodex';
-import { OtomoVideoInsert } from '../model/otomo';
-import { QueueEntry, YOUTUBE_VIDEOS_BUFFER_MINUTES } from './fetch';
 import { databaseUrl } from '../env';
+import { HolodexVideo } from '../model/holodex';
+import { OtomoChannelDataInsert, OtomoVideoInsert } from '../model/otomo';
+import { HashRefreshResult, VideoQueueEntry, YOUTUBE_VIDEOS_BUFFER_MINUTES } from './fetch';
 
 export const db = drizzle(databaseUrl);
 
@@ -48,11 +48,11 @@ export async function queueUnseenHolodexVideos(
     videos: HolodexVideo[]
 ) {
     try {
-        const unqueuedVideos: QueueEntry[] = [];
+        const unqueuedVideos: VideoQueueEntry[] = [];
 
         const dbChannelIds = new Set(
             (await db.select({ channelId: channelsTable.channel_id }).from(channelsTable))
-            .map((channel) => channel.channelId)
+                .map((channel) => channel.channelId)
         );
         const dbQueuedVideoIds = new Set(
             (await db.select({ videoId: queuedVideosTable.video_id }).from(queuedVideosTable))
@@ -71,7 +71,7 @@ export async function queueUnseenHolodexVideos(
         }
 
         await modifyVideoQueue(unqueuedVideos, "new");
-        
+
         return unqueuedVideos.length;
     } catch (e) {
         console.error(`[${new Date().toISOString()}] DB: Unable to queue unseen videos from Holodex!`, e);
@@ -130,7 +130,7 @@ export async function removeYouTubeVideo(videoId: string) {
     }
 }
 
-export async function getQueuedVideos(): Promise<QueueEntry[] | undefined> {
+export async function getQueuedVideos(): Promise<VideoQueueEntry[] | undefined> {
     const currentTime = new Date().getTime();
 
     try {
@@ -143,7 +143,18 @@ export async function getQueuedVideos(): Promise<QueueEntry[] | undefined> {
     }
 }
 
-export async function modifyVideoQueue(videos: QueueEntry[], type: keyof typeof YOUTUBE_VIDEOS_BUFFER_MINUTES) {
+export async function getMissingHashVideos() {
+    // Filter out videos published older than 1 day
+    return await db.select({ video_id: videosTable.video_id }).from(videosTable)
+        .where(
+            and(
+                gte(videosTable.published_at, Date.now() - (24 * 60 * 60 * 1000)),
+                isNull(videosTable.thumbhash)
+            )
+        );
+}
+
+export async function modifyVideoQueue(videos: VideoQueueEntry[], type: keyof typeof YOUTUBE_VIDEOS_BUFFER_MINUTES) {
     const minTime = new Date().getTime() + (YOUTUBE_VIDEOS_BUFFER_MINUTES[type] - 0.5) * 60 * 1000;     // Remove 30 seconds so that they are fetched on the upcoming 2 minute fetches
 
     for (const video of videos) {
@@ -205,4 +216,58 @@ export async function setChannelSubscription(channelId: string, time: number) {
     }
 
     return false;
+}
+
+export async function getAllChannels() {
+    return await db.select().from(channelsTable);
+}
+
+export async function getMissingHashChannels() {
+    return await db.select().from(channelsTable)
+        .where(or(
+            isNull(channelsTable.profile_hash),
+            and(
+                isNotNull(channelsTable.banner),
+                isNull(channelsTable.banner_hash)
+            )
+        ));
+}
+
+export async function updateChannelsData(channelsData: OtomoChannelDataInsert[]) {
+    await db.transaction(async (tx) => {
+        for (const channel of channelsData) {
+            const banner = channel.banner ?? null;
+            await tx.update(channelsTable).set({
+                profile_picture: channel.profile_picture,
+                profile_hash:
+                    sql`CASE WHEN ${channelsTable.profile_picture} IS DISTINCT FROM ${channel.profile_picture}
+                            THEN NULL ELSE ${channelsTable.profile_hash} END`,
+                banner: banner,
+                banner_hash:
+                    sql`CASE WHEN ${channelsTable.banner} IS DISTINCT FROM ${banner}
+                            THEN NULL ELSE ${channelsTable.banner_hash} END`,
+            }).where(eq(channelsTable.channel_id, channel.channel_id));
+        }
+    });
+}
+
+export async function updateHashes(hashes: HashRefreshResult[]) {
+    await db.transaction(async (tx) => {
+        for (const hash of hashes) {
+            switch (hash.type) {
+                case "profile_picture":
+                    await tx.update(channelsTable).set({ profile_hash: hash.data })
+                        .where(eq(channelsTable.channel_id, hash.id));
+                    break;
+                case "banner":
+                    await tx.update(channelsTable).set({ banner_hash: hash.data })
+                        .where(eq(channelsTable.channel_id, hash.id));
+                    break;
+                case "thumbnail":
+                    await tx.update(videosTable).set({ thumbhash: hash.data })
+                        .where(eq(videosTable.video_id, hash.id));
+                    break;
+            }
+        }
+    });
 }

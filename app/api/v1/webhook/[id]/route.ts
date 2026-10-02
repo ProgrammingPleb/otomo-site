@@ -1,3 +1,4 @@
+import { VideoQueueEntry } from "@/app/utils/fetch";
 import { processNewVideos, recordChannelSubscription, YOUTUBE_WEBSUB_SECRET } from "@/app/utils/subscribe";
 import { createHmac, timingSafeEqual } from "crypto";
 import { XMLParser } from "fast-xml-parser";
@@ -55,7 +56,7 @@ export async function POST(
     }
 
     const entries = data.feed.entry;
-    const videoIds: { id: string, isShorts: boolean }[] = [];
+    const videoIds: VideoQueueEntry[] = [];
     if (entries) {
         for (const entry of entries) {
             const videoId = entry["yt:videoId"] as string | undefined;

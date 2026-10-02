@@ -1,5 +1,5 @@
 import { getPendingChannelResubs, modifyVideoQueue, removeYouTubeVideo, setChannelSubscription } from "./db";
-import { QueueEntry } from "./fetch";
+import { VideoQueueEntry } from "./fetch";
 
 export const YOUTUBE_WEBSUB_SECRET = process.env.YOUTUBE_WEBSUB_SECRET!;
 
@@ -55,7 +55,7 @@ export async function updateChannelSubscriptions() {
     return attemptedResubs;
 }
 
-export async function processNewVideos(entries: QueueEntry[], deleted: string[]) {
+export async function processNewVideos(entries: VideoQueueEntry[], deleted: string[]) {
     await modifyVideoQueue(entries, "new");
 
     for (const deletedEntry of deleted) {
